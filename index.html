@@ -11,9 +11,8 @@
       padding: 20px; 
       margin: 0; 
       display: flex; 
-      justify-content: center; 
+      flex-direction: column;
       align-items: center; 
-      height: 100vh; 
     }
     .container {
       width: 90%;
@@ -23,160 +22,144 @@
       border-radius: 12px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.2);
       color: black;
-      text-align: left;
+      text-align: center;
     }
-    .search-bar, .new-input { 
+    .search-bar { 
       width: 100%;
       padding: 10px; 
       font-size: 1.2em; 
       border: 1px solid #007BFF; 
       border-radius: 8px; 
-      display: block; 
-      margin-bottom: 10px;
+      margin-bottom: 20px; 
     }
-    .results { 
-      max-height: 400px;
-      overflow-y: auto;
+    .results {
+      text-align: left;
+      margin-top: 10px;
+    }
+    .phrase-result { 
+      font-size: 1.5em; 
+      color: #333; 
+      font-weight: bold; 
       margin-top: 10px; 
     }
-    .result-item {
-      padding: 10px;
-      border-radius: 8px;
-      background: #f1f1f1;
-      margin-bottom: 10px;
-    }
-    .phrase { 
-      font-weight: bold;
-      color: #333; 
-    }
-    .translation { 
-      font-size: 1.2em;
+    .translation-result { 
+      font-size: 1.2em; 
       color: #007BFF; 
       font-style: italic; 
+      margin-bottom: 10px; 
     }
-    .add-section {
+    .controls {
       margin-top: 20px;
+    }
+    .add-new-section {
       display: none;
+      margin-top: 20px;
     }
-    .checkbox-label {
-      font-size: 1.1em;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-top: 10px;
-    }
-    .add-btn {
-      padding: 10px;
-      font-size: 1em;
-      border: none;
-      border-radius: 8px;
-      background-color: #28a745;
-      color: white;
-      cursor: pointer;
-      transition: 0.3s;
-      margin-top: 10px;
+    .add-new-section input {
       width: 100%;
+      padding: 10px;
+      margin-bottom: 10px;
+      font-size: 1em;
+      border: 1px solid #007BFF;
+      border-radius: 8px;
     }
-    .add-btn:hover { background-color: #218838; }
+    button { 
+      font-size: 1em; 
+      padding: 10px 20px; 
+      border: none; 
+      border-radius: 8px; 
+      background-color: #007BFF; 
+      color: white; 
+      cursor: pointer; 
+      transition: 0.3s; 
+    }
+    button:hover { background-color: #0056b3; transform: scale(1.05); }
   </style>
 </head>
 <body>
+
   <div class="container">
     <h1>Kunama Academy (KUNACA)</h1>
-    
-    <input type="text" id="searchInput" class="search-bar" placeholder="Search a phrase..." aria-label="Search for a phrase">
-    <div class="results" id="results"></div>
+    <input type="text" id="searchInput" class="search-bar" placeholder="Search a phrase..." oninput="searchPhrase()">
+    <div id="results" class="results"></div>
 
-    <label class="checkbox-label">
-      <input type="checkbox" id="addNewCheckbox"> ✅ Add New Phrase
-    </label>
-
-    <div class="add-section" id="addSection">
-      <input type="text" id="newPhrase" class="new-input" placeholder="Enter phrase...">
-      <input type="text" id="newTranslation" class="new-input" placeholder="Enter translation...">
-      <button class="add-btn" onclick="addNewPhrase()">Add Phrase</button>
-      <p id="statusMessage"></p>
+    <div class="controls">
+      <input type="checkbox" id="addNewCheck"> <label for="addNewCheck">Add New Phrase</label>
+      <div id="addNewSection" class="add-new-section">
+        <input type="text" id="newPhrase" placeholder="Enter new phrase">
+        <input type="text" id="newTranslation" placeholder="Enter translation">
+        <button onclick="addNewPhrase()">Submit</button>
+      </div>
     </div>
   </div>
 
   <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbxrSqUOrRUCV2peb2EF_UAveaRybrOBo5YarYEUhrJ3rfbhWZjsTJlKnYtbGHycIeV1cQ/exec";
-    let timeout = null;
+    const API_URL = "https://script.google.com/macros/s/AKfycbxKZSkmvUax3C9Y-sK7IErASgZdI6x4xrKYNxTGaTdHh5aBFmfaEi-5ll9dhr1WEXBKsg/exec";  // Replace with your Google Apps Script URL
 
-    document.getElementById("searchInput").addEventListener("input", function () {
-      clearTimeout(timeout);
-      timeout = setTimeout(searchPhrase, 300);
+    // Show/hide add new phrase section
+    document.getElementById("addNewCheck").addEventListener("change", function() {
+      document.getElementById("addNewSection").style.display = this.checked ? "block" : "none";
     });
 
-    document.getElementById("addNewCheckbox").addEventListener("change", function() {
-      document.getElementById("addSection").style.display = this.checked ? "block" : "none";
-    });
-
-    async function searchPhrase() {
-      const input = document.getElementById("searchInput").value.trim();
-      const resultsContainer = document.getElementById("results");
-      resultsContainer.innerHTML = "";
-
-      if (!input) {
-        resultsContainer.innerHTML = "<p>Type a phrase to search...</p>";
+    function searchPhrase() {
+      const query = document.getElementById("searchInput").value.trim().toLowerCase();
+      if (!query) {
+        document.getElementById("results").innerHTML = ""; 
         return;
       }
 
-      try {
-        const response = await fetch(`${API_URL}?q=${encodeURIComponent(input)}`);
-        const results = await response.json();
+      fetch(`${API_URL}?q=${encodeURIComponent(query)}`)
+        .then(response => response.json())
+        .then(data => {
+          const resultsContainer = document.getElementById("results");
+          resultsContainer.innerHTML = "";
+          if (data.length === 0) {
+            resultsContainer.innerHTML = "<p>No results found.</p>";
+            return;
+          }
+          data.forEach(item => {
+            const phraseEl = document.createElement("div");
+            phraseEl.classList.add("phrase-result");
+            phraseEl.textContent = item.phrase;
 
-        if (!results.length) {
-          resultsContainer.innerHTML = "<p>No results found</p>";
-          return;
-        }
+            const translationEl = document.createElement("div");
+            translationEl.classList.add("translation-result");
+            translationEl.textContent = item.translation;
 
-        resultsContainer.innerHTML = results.map(result => `
-          <div class="result-item">
-            <p class="phrase">${result.phrase}</p>
-            <p class="translation">${result.translation}</p>
-          </div>
-        `).join("");
-      } catch (error) {
-        console.error("Error fetching translation:", error);
-        resultsContainer.innerHTML = "<p>Error fetching data</p>";
-      }
+            resultsContainer.appendChild(phraseEl);
+            resultsContainer.appendChild(translationEl);
+          });
+        })
+        .catch(error => console.error("Error fetching data:", error));
     }
 
-    async function addNewPhrase() {
+    function addNewPhrase() {
       const phrase = document.getElementById("newPhrase").value.trim();
       const translation = document.getElementById("newTranslation").value.trim();
-      const statusMessage = document.getElementById("statusMessage");
 
       if (!phrase || !translation) {
-        statusMessage.textContent = "Please fill in both fields!";
-        statusMessage.style.color = "red";
+        alert("Please enter both a phrase and translation.");
         return;
       }
 
-      try {
-        const response = await fetch(API_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ phrase, translation })
-        });
-
-        const result = await response.text();
-        if (result === "Success") {
-          statusMessage.textContent = "Phrase added successfully!";
-          statusMessage.style.color = "green";
+      fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phrase, translation })
+      })
+      .then(response => response.text())
+      .then(data => {
+        if (data === "Success") {
+          alert("Phrase added successfully!");
           document.getElementById("newPhrase").value = "";
           document.getElementById("newTranslation").value = "";
         } else {
-          statusMessage.textContent = "Failed to add phrase!";
-          statusMessage.style.color = "red";
+          alert("Error: " + data);
         }
-      } catch (error) {
-        console.error("Error adding phrase:", error);
-        statusMessage.textContent = "Error adding phrase!";
-        statusMessage.style.color = "red";
-      }
+      })
+      .catch(error => alert("Error: " + error.message));
     }
   </script>
+
 </body>
 </html>
