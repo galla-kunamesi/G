@@ -11,8 +11,9 @@
       padding: 20px; 
       margin: 0; 
       display: flex; 
-      flex-direction: column;
+      justify-content: center; 
       align-items: center; 
+      height: 100vh; 
     }
     .container {
       width: 90%;
@@ -22,46 +23,35 @@
       border-radius: 12px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.2);
       color: black;
-      text-align: center;
+      text-align: left;
     }
     .search-bar { 
       width: 100%;
-      padding: 10px; 
-      font-size: 1.2em; 
+      padding: 8px; 
+      margin-bottom: 20px; 
+      font-size: 1.1em; 
       border: 1px solid #007BFF; 
       border-radius: 8px; 
-      margin-bottom: 20px; 
+      display: block; 
     }
-    .results {
-      text-align: left;
-      margin-top: 10px;
-    }
-    .phrase-result { 
-      font-size: 1.5em; 
+    .phrase { 
+      font-size: 2.2em; 
       color: #333; 
       font-weight: bold; 
-      margin-top: 10px; 
+      margin-bottom: 20px; 
     }
-    .translation-result { 
-      font-size: 1.2em; 
+    .translation { 
+      font-size: 1.8em; 
       color: #007BFF; 
       font-style: italic; 
-      margin-bottom: 10px; 
+      opacity: 0; 
+      transition: opacity 1s; 
+      margin-bottom: 20px; 
     }
-    .controls {
-      margin-top: 20px;
-    }
-    .add-new-section {
-      display: none;
-      margin-top: 20px;
-    }
-    .add-new-section input {
-      width: 100%;
-      padding: 10px;
-      margin-bottom: 10px;
-      font-size: 1em;
-      border: 1px solid #007BFF;
-      border-radius: 8px;
+    .controls { 
+      margin-top: 20px; 
+      display: flex; 
+      gap: 10px; 
     }
     button { 
       font-size: 1em; 
@@ -74,92 +64,166 @@
       transition: 0.3s; 
     }
     button:hover { background-color: #0056b3; transform: scale(1.05); }
+    button:disabled { background-color: #aaa; cursor: not-allowed; transform: none; }
+    .progress-container { 
+      width: 100%; 
+      background: #ddd; 
+      border-radius: 5px; 
+      margin-top: 20px; 
+      height: 20px; 
+      overflow: hidden; 
+    }
+    .progress-bar { 
+      height: 100%; 
+      width: 0%; 
+      background: #28a745; 
+      transition: width 0.5s; 
+    }
+    .slide-number { 
+      text-align: left; 
+      margin-top: 10px; 
+      font-size: 1.2em; 
+      color: black; 
+    }
+    @media (max-width: 600px) {
+      .phrase { font-size: 1.8em; }
+      .translation { font-size: 1.5em; }
+      button { width: 100%; }
+    }
   </style>
 </head>
 <body>
-
-  <div class="container">
+  <div class="container" id="teachingContainer" role="main">
     <h1>Kunama Academy (KUNACA)</h1>
-    <input type="text" id="searchInput" class="search-bar" placeholder="Search a phrase..." oninput="searchPhrase()">
-    <div id="results" class="results"></div>
-
+    <input type="text" id="searchInput" class="search-bar" placeholder="Search a phrase..." onkeyup="searchPhrase()" aria-label="Search for a phrase">
+    <div class="phrase" id="phrase" aria-live="polite">Loading...</div>
+    <div class="translation" id="translation" aria-live="polite">Loading...</div>
     <div class="controls">
-      <input type="checkbox" id="addNewCheck"> <label for="addNewCheck">Add New Phrase</label>
-      <div id="addNewSection" class="add-new-section">
-        <input type="text" id="newPhrase" placeholder="Enter new phrase">
-        <input type="text" id="newTranslation" placeholder="Enter translation">
-        <button onclick="addNewPhrase()">Submit</button>
-      </div>
+      <button id="prev" disabled aria-label="Previous phrase">⬅ Previous</button>
+      <button id="next" disabled aria-label="Next phrase">Next ➡</button>
     </div>
+    <div class="progress-container" aria-label="Progress of phrases">
+      <div class="progress-bar" id="progressBar"></div>
+    </div>
+    <div class="slide-number" id="slideNumber">Slide 1 of 1</div>
   </div>
 
   <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbxKZSkmvUax3C9Y-sK7IErASgZdI6x4xrKYNxTGaTdHh5aBFmfaEi-5ll9dhr1WEXBKsg/exec";  // Replace with your Google Apps Script URL
+    const defaultPhrases = [
+      { phrase: "Hi, how are you?", translation: "Hi, ayken nokosso?" },
+      { phrase: "Hello! How’s it going?", translation: "Hello, aykes gaskeso gosso?" },
+      { phrase: "Good morning!", translation: "Maydoka niñinube/Fem mesube?" },
+      { phrase: "What’s your name?", translation: "Kideya nano?" },
+	  {
+  phrase: "What’s your name?",
+  translation: "Kideya nano?"
+ },
+ {
+  phrase: "I’m [name]. Nice to meet you.",
+  translation: "Aba kidaña Galla. Maydidiki kaleyya. "
+ },
+ {
+  phrase: "It’s a pleasure to meet you. ",
+  translation: "Aba enatte kalemenabbu\/kakotakemenabbu agogoda?"
+ },
+ {
+  phrase: "Where do you live?",
+  translation: "Ena aykalle woyniyonu\/nusuka?"
+ },
+ {
+  phrase: "I live in [city\/country]. ",
+  translation: "Aba Karkaššala woyniyonana?"
+ },
+ {
+  phrase: "How’s your day going? ",
+  translation: "Uyeya maydoka gaskeso gosube?"
+ },
+ {
+  phrase: "Have a nice day! ",
+  translation: "Uya mayda kiša keso!"
+ },
+ {
+  phrase: "See you later! ",
+  translation: "Bakutti kale!"
+ },
+ {
+  phrase: "See you soon! ",
+  translation: "Bakutti kale!"
+ },
+ {
+  phrase: "Goodbye!",
+  translation: "Sullumasi!"
+ },
+ {
+  phrase: "Take care! ",
+  translation: "Walidaka!"
+ },
+ {
+  phrase: "How old are you? ",
+  translation: "Ena galleye aykalleno?"
+ },
+ {
+  phrase: "I’m [age] years old. ",
+  translation: "Aba gallañe šeb-anala kontisatte deya.  "
+ },
+ {
+  phrase: "What’s your favorite hobby? ",
+  translation: "Ena anda nimema kobabala data ayšino?"
+ },
+ {
+  phrase: "My favorite hobby is [hobby]. ",
+  translation: "Aba namema kobabala data minda-balla hodan deya. "
+ }
+	  
+    ];
+    
+    let phrases = defaultPhrases.slice();
+    let currentIndex = 0, translationTimeout;
 
-    // Show/hide add new phrase section
-    document.getElementById("addNewCheck").addEventListener("change", function() {
-      document.getElementById("addNewSection").style.display = this.checked ? "block" : "none";
-    });
+    function showPhrase(index) {
+      clearTimeout(translationTimeout);
+      document.getElementById("phrase").textContent = phrases[index].phrase;
+      const translationEl = document.getElementById("translation");
+      translationEl.textContent = "";
+      translationEl.style.opacity = 0;
+      translationTimeout = setTimeout(() => { 
+        translationEl.textContent = phrases[index].translation; 
+        translationEl.style.opacity = 1; 
+      }, 1000);
+      document.getElementById("prev").disabled = index === 0;
+      document.getElementById("next").disabled = index === phrases.length - 1;
+      updateProgress();
+    }
+
+    function updateProgress() {
+      document.getElementById("progressBar").style.width = ((currentIndex + 1) / phrases.length) * 100 + "%";
+      document.getElementById("slideNumber").textContent = `Slide ${currentIndex + 1} of ${phrases.length}`;
+    }
 
     function searchPhrase() {
-      const query = document.getElementById("searchInput").value.trim().toLowerCase();
-      if (!query) {
-        document.getElementById("results").innerHTML = ""; 
-        return;
+      const input = document.getElementById("searchInput").value.toLowerCase();
+      const result = phrases.find(p => p.phrase.toLowerCase().includes(input) || p.translation.toLowerCase().includes(input));
+      if (result) { 
+        currentIndex = phrases.indexOf(result); 
+        showPhrase(currentIndex); 
       }
-
-      fetch(`${API_URL}?q=${encodeURIComponent(query)}`)
-        .then(response => response.json())
-        .then(data => {
-          const resultsContainer = document.getElementById("results");
-          resultsContainer.innerHTML = "";
-          if (data.length === 0) {
-            resultsContainer.innerHTML = "<p>No results found.</p>";
-            return;
-          }
-          data.forEach(item => {
-            const phraseEl = document.createElement("div");
-            phraseEl.classList.add("phrase-result");
-            phraseEl.textContent = item.phrase;
-
-            const translationEl = document.createElement("div");
-            translationEl.classList.add("translation-result");
-            translationEl.textContent = item.translation;
-
-            resultsContainer.appendChild(phraseEl);
-            resultsContainer.appendChild(translationEl);
-          });
-        })
-        .catch(error => console.error("Error fetching data:", error));
     }
 
-    function addNewPhrase() {
-      const phrase = document.getElementById("newPhrase").value.trim();
-      const translation = document.getElementById("newTranslation").value.trim();
+    document.getElementById("next").addEventListener("click", function() { 
+      if (currentIndex < phrases.length - 1) { 
+        currentIndex++; 
+        showPhrase(currentIndex); 
+      } 
+    });
 
-      if (!phrase || !translation) {
-        alert("Please enter both a phrase and translation.");
-        return;
-      }
+    document.getElementById("prev").addEventListener("click", function() { 
+      if (currentIndex > 0) { 
+        currentIndex--; 
+        showPhrase(currentIndex); 
+      } 
+    });
 
-      fetch(API_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phrase, translation })
-      })
-      .then(response => response.text())
-      .then(data => {
-        if (data === "Success") {
-          alert("Phrase added successfully!");
-          document.getElementById("newPhrase").value = "";
-          document.getElementById("newTranslation").value = "";
-        } else {
-          alert("Error: " + data);
-        }
-      })
-      .catch(error => alert("Error: " + error.message));
-    }
+    showPhrase(0);
   </script>
-
 </body>
 </html>
