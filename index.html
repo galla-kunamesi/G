@@ -25,205 +25,165 @@
       color: black;
       text-align: left;
     }
-    .search-bar { 
+    .search-bar, .new-input { 
       width: 100%;
-      padding: 8px; 
-      margin-bottom: 20px; 
-      font-size: 1.1em; 
+      padding: 10px; 
+      font-size: 1.2em; 
       border: 1px solid #007BFF; 
       border-radius: 8px; 
       display: block; 
+      margin-bottom: 10px;
+    }
+    .results { 
+      max-height: 400px;
+      overflow-y: auto;
+      margin-top: 10px; 
+    }
+    .result-item {
+      padding: 10px;
+      border-radius: 8px;
+      background: #f1f1f1;
+      margin-bottom: 10px;
     }
     .phrase { 
-      font-size: 2.2em; 
+      font-weight: bold;
       color: #333; 
-      font-weight: bold; 
-      margin-bottom: 20px; 
     }
     .translation { 
-      font-size: 1.8em; 
+      font-size: 1.2em;
       color: #007BFF; 
       font-style: italic; 
-      opacity: 0; 
-      transition: opacity 1s; 
-      margin-bottom: 20px; 
     }
-    .controls { 
-      margin-top: 20px; 
-      display: flex; 
-      gap: 10px; 
+    .add-section {
+      margin-top: 20px;
+      display: none;
     }
-    button { 
-      font-size: 1em; 
-      padding: 10px 20px; 
-      border: none; 
-      border-radius: 8px; 
-      background-color: #007BFF; 
-      color: white; 
-      cursor: pointer; 
-      transition: 0.3s; 
+    .checkbox-label {
+      font-size: 1.1em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 10px;
     }
-    button:hover { background-color: #0056b3; transform: scale(1.05); }
-    button:disabled { background-color: #aaa; cursor: not-allowed; transform: none; }
-    .progress-container { 
-      width: 100%; 
-      background: #ddd; 
-      border-radius: 5px; 
-      margin-top: 20px; 
-      height: 20px; 
-      overflow: hidden; 
+    .add-btn {
+      padding: 10px;
+      font-size: 1em;
+      border: none;
+      border-radius: 8px;
+      background-color: #28a745;
+      color: white;
+      cursor: pointer;
+      transition: 0.3s;
+      margin-top: 10px;
+      width: 100%;
     }
-    .progress-bar { 
-      height: 100%; 
-      width: 0%; 
-      background: #28a745; 
-      transition: width 0.5s; 
-    }
-    .slide-number { 
-      text-align: left; 
-      margin-top: 10px; 
-      font-size: 1.2em; 
-      color: black; 
-    }
-    @media (max-width: 600px) {
-      .phrase { font-size: 1.8em; }
-      .translation { font-size: 1.5em; }
-      button { width: 100%; }
-    }
+    .add-btn:hover { background-color: #218838; }
   </style>
 </head>
 <body>
-  <div class="container" id="teachingContainer" role="main">
+  <div class="container">
     <h1>Kunama Academy (KUNACA)</h1>
-    <input type="text" id="searchInput" class="search-bar" placeholder="Search a phrase..." onkeyup="searchPhrase()" aria-label="Search for a phrase">
-    <div class="phrase" id="phrase" aria-live="polite">Loading...</div>
-    <div class="translation" id="translation" aria-live="polite">Loading...</div>
-    <div class="controls">
-      <button id="prev" disabled aria-label="Previous phrase">⬅ Previous</button>
-      <button id="next" disabled aria-label="Next phrase">Next ➡</button>
+    
+    <input type="text" id="searchInput" class="search-bar" placeholder="Search a phrase..." aria-label="Search for a phrase">
+    <div class="results" id="results"></div>
+
+    <label class="checkbox-label">
+      <input type="checkbox" id="addNewCheckbox"> ✅ Add New Phrase
+    </label>
+
+    <div class="add-section" id="addSection">
+      <input type="text" id="newPhrase" class="new-input" placeholder="Enter phrase...">
+      <input type="text" id="newTranslation" class="new-input" placeholder="Enter translation...">
+      <button class="add-btn" onclick="addNewPhrase()">Add Phrase</button>
+      <p id="statusMessage"></p>
     </div>
-    <div class="progress-container" aria-label="Progress of phrases">
-      <div class="progress-bar" id="progressBar"></div>
-    </div>
-    <div class="slide-number" id="slideNumber">Slide 1 of 1</div>
   </div>
 
   <script>
-    const defaultPhrases = [
-      { phrase: "Hi, how are you?", translation: "Hi, ayken nokosso?" },
-      { phrase: "Hello! How’s it going?", translation: "Hello, aykes gaskeso gosso?" },
-      { phrase: "Good morning!", translation: "Maydoka niñinube/Fem mesube?" },
-      { phrase: "What’s your name?", translation: "Kideya nano?" },
-	  {
-  phrase: "What’s your name?",
-  translation: "Kideya nano?"
- },
- {
-  phrase: "I’m [name]. Nice to meet you.",
-  translation: "Aba kidaña Galla. Maydidiki kaleyya. "
- },
- {
-  phrase: "It’s a pleasure to meet you. ",
-  translation: "Aba enatte kalemenabbu\/kakotakemenabbu agogoda?"
- },
- {
-  phrase: "Where do you live?",
-  translation: "Ena aykalle woyniyonu\/nusuka?"
- },
- {
-  phrase: "I live in [city\/country]. ",
-  translation: "Aba Karkaššala woyniyonana?"
- },
- {
-  phrase: "How’s your day going? ",
-  translation: "Uyeya maydoka gaskeso gosube?"
- },
- {
-  phrase: "Have a nice day! ",
-  translation: "Uya mayda kiša keso!"
- },
- {
-  phrase: "See you later! ",
-  translation: "Bakutti kale!"
- },
- {
-  phrase: "See you soon! ",
-  translation: "Bakutti kale!"
- },
- {
-  phrase: "Goodbye!",
-  translation: "Sullumasi!"
- },
- {
-  phrase: "Take care! ",
-  translation: "Walidaka!"
- },
- {
-  phrase: "How old are you? ",
-  translation: "Ena galleye aykalleno?"
- },
- {
-  phrase: "I’m [age] years old. ",
-  translation: "Aba gallañe šeb-anala kontisatte deya.  "
- },
- {
-  phrase: "What’s your favorite hobby? ",
-  translation: "Ena anda nimema kobabala data ayšino?"
- },
- {
-  phrase: "My favorite hobby is [hobby]. ",
-  translation: "Aba namema kobabala data minda-balla hodan deya. "
- }
-	  
-    ];
-    
-    let phrases = defaultPhrases.slice();
-    let currentIndex = 0, translationTimeout;
+     const API_URL = "https://script.google.com/macros/s/AKfycbxrSqUOrRUCV2peb2EF_UAveaRybrOBo5YarYEUhrJ3rfbhWZjsTJlKnYtbGHycIeV1cQ/exec";
+	//const API_URL = "https://script.google.com/macros/s/AKfycbzcfSr2UH6D8cQ9X3R3e_41MHfcyqLAsz6dBTB3M8hyZsN9wWIfIpTQJUwt-JZ2YlocSA/exec";
+    let timeout = null;
 
-    function showPhrase(index) {
-      clearTimeout(translationTimeout);
-      document.getElementById("phrase").textContent = phrases[index].phrase;
-      const translationEl = document.getElementById("translation");
-      translationEl.textContent = "";
-      translationEl.style.opacity = 0;
-      translationTimeout = setTimeout(() => { 
-        translationEl.textContent = phrases[index].translation; 
-        translationEl.style.opacity = 1; 
-      }, 1000);
-      document.getElementById("prev").disabled = index === 0;
-      document.getElementById("next").disabled = index === phrases.length - 1;
-      updateProgress();
-    }
-
-    function updateProgress() {
-      document.getElementById("progressBar").style.width = ((currentIndex + 1) / phrases.length) * 100 + "%";
-      document.getElementById("slideNumber").textContent = `Slide ${currentIndex + 1} of ${phrases.length}`;
-    }
-
-    function searchPhrase() {
-      const input = document.getElementById("searchInput").value.toLowerCase();
-      const result = phrases.find(p => p.phrase.toLowerCase().includes(input) || p.translation.toLowerCase().includes(input));
-      if (result) { 
-        currentIndex = phrases.indexOf(result); 
-        showPhrase(currentIndex); 
-      }
-    }
-
-    document.getElementById("next").addEventListener("click", function() { 
-      if (currentIndex < phrases.length - 1) { 
-        currentIndex++; 
-        showPhrase(currentIndex); 
-      } 
+    document.getElementById("searchInput").addEventListener("input", function () {
+      clearTimeout(timeout);
+      timeout = setTimeout(searchPhrase, 300);
     });
 
-    document.getElementById("prev").addEventListener("click", function() { 
-      if (currentIndex > 0) { 
-        currentIndex--; 
-        showPhrase(currentIndex); 
-      } 
+    document.getElementById("addNewCheckbox").addEventListener("change", function() {
+      document.getElementById("addSection").style.display = this.checked ? "block" : "none";
     });
 
-    showPhrase(0);
+    async function searchPhrase() {
+		const input = document.getElementById("searchInput").value.trim().toLowerCase();
+		const resultsContainer = document.getElementById("results");
+		resultsContainer.innerHTML = "";
+
+		if (!input) {
+			resultsContainer.innerHTML = "<p>Type a phrase to search...</p>";
+			return;
+		}
+
+		try {
+			const response = await fetch(`${API_URL}?q=${encodeURIComponent(input)}`);
+			let results = await response.json();
+
+			if (!results.length) {
+				resultsContainer.innerHTML = "<p>No results found</p>";
+				return;
+			}
+
+			// Prioritize exact matches first
+			results = results.sort((a, b) => {
+				const aMatch = a.phrase.toLowerCase().startsWith(input) || a.translation.toLowerCase().startsWith(input);
+				const bMatch = b.phrase.toLowerCase().startsWith(input) || b.translation.toLowerCase().startsWith(input);
+				return bMatch - aMatch; // Exact matches first
+			});
+
+			// Limit to top 7 results
+			results = results.slice(0, 7);
+
+			// Display results
+			resultsContainer.innerHTML = results.map(result => `
+				<div class="result-item">
+					<p class="phrase"><strong>${result.phrase}</strong></p>
+					<p class="translation">${result.translation}</p>
+				</div>
+			`).join("");
+
+		} catch (error) {
+			console.error("Error fetching translation:", error);
+			resultsContainer.innerHTML = "<p>Error fetching data</p>";
+		}
+	}
+
+
+		function addNewPhrase() {
+		  const phrase = document.getElementById("newPhrase").value.trim();
+		  const translation = document.getElementById("newTranslation").value.trim();
+		  
+		  if (!phrase || !translation) {
+			alert("Please enter both a phrase and translation.");
+			return;
+		  }
+		  
+		  fetch("API_URL", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ phrase, translation }), // Dynamically pass values here
+			mode: "cors"
+		  })
+		  .then(response => response.text()) // Use `.text()` if Apps Script returns plain text
+		  .then(data => {
+			console.log(data);
+			document.getElementById("statusMessage").innerText = "Phrase added successfully!";
+		  })
+		  .catch(error => {
+			console.error("Fetch Error:", error);
+			document.getElementById("statusMessage").innerText = "Error adding phrase.";
+		  });
+}
+
+
   </script>
 </body>
 </html>
